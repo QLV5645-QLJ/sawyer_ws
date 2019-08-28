@@ -113,7 +113,20 @@ class MoveGroupCom(object):
                 self.lastGoalId = self.goalId
                 self.reachGoal=True
                 print("**************** reach new goal *****************")
-
+    
+    def get_traj(self):
+        traj = None
+        points = None
+        while points is None:
+            try:
+                print("############getting plan#############")
+                points = rospy.wait_for_message("/move_group/display_planned_path",DisplayTrajectory,timeout=5).trajectory[0].joint_trajectory.points
+            except:
+                pass
+        for p in points:
+            traj.append(p.positions)
+        return traj
+ 
     def trajectory_callback(self,msg):
         print("############### get new plan #################")
         self.traectories = []
@@ -122,7 +135,9 @@ class MoveGroupCom(object):
             self.traectories.append(p.positions)
         
 def record_trajectory(start,end,traj):
-
+    end = list(numpy.around(numpy.array(end),5))
+    start = list(numpy.around(numpy.array(start),5))
+    traj =  (numpy.around(numpy.array(traj),5)).tolist()
     with open('/clever/roboArm_dataset/data.txt', 'a') as f:
         f.write("start: "+str(start)+"\n")
         f.write("tajectories: "+str(traj)+"\n")
@@ -133,19 +148,22 @@ def record_trajectory(start,end,traj):
 if __name__ == "__main__":
     my_arm = MoveGroupCom()
     terminal = 0
-    trajectoryNum = 5
+    trajectoryNum = 3000 + 2
     
     while(terminal < trajectoryNum):
         random_joint_value = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
-        print("random joint goal:",random_joint_value)
+        # print("random joint goal:",random_joint_value)
         my_arm.reach_jointGoal(random_joint_value)
-        time.sleep(1)
+        time.sleep(4)
         if(my_arm.reachGoal):
             terminal+=1
             start = list(my_arm.start)
             end = list(my_arm.end)
             traj = list(my_arm.traectories)
-            record_trajectory(start,end,traj)
+            # sychronize the trajectory
+            if(terminal > 1):
+                print("record %d data"%terminal)
+                record_trajectory(start,end,traj)
 
     # start = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
     # end = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
