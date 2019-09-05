@@ -23,6 +23,7 @@ class MoveGroupCom(object):
         scene = moveit_commander.PlanningSceneInterface()
         group_name = "right_arm"
         self.move_group = moveit_commander.MoveGroupCommander(group_name)
+        self.scene = moveit_commander.PlanningSceneInterface()
 
         self.display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path',
                                                     moveit_msgs.msg.DisplayTrajectory,
@@ -133,12 +134,46 @@ class MoveGroupCom(object):
         points = msg.trajectory[0].joint_trajectory.points
         for p in points:
             self.traectories.append(p.positions)
+    
+    def add_obs0(self):
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "base"
+        box_pose.pose.orientation.w = 1.0
+        box_pose.pose.position.z = 0.2 # slightly above the end effector
+        box_pose.pose.position.x = 0.4 # slightly above the end effector
+        box_name = "box0"
+        self.scene.add_box(box_name, box_pose, size=(0.4, 0.4,0.1))
+        time.sleep(1)
+
+    def add_obs1(self):
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "base"
+        box_pose.pose.orientation.w = 1.0
+        box_pose.pose.position.z = -0.2 # slightly above the end effector
+        box_pose.pose.position.x = 0.4 # slightly above the end effector
+        box_name = "box1"
+        self.scene.add_box(box_name, box_pose, size=(0.4, 0.4,0.1))
+        time.sleep(1)
+
+    def add_obs2(self):
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "base"
+        box_pose.pose.orientation.w = 1.0
+        box_pose.pose.position.z = 0.0 # slightly above the end effector
+        box_pose.pose.position.x = 0.4 # slightly above the end effector
+        box_name = "box2"
+        self.scene.add_box(box_name, box_pose, size=(0.2, 0.1,0.2))
+        time.sleep(1)
+
+    def delete_obs(self):
+        self.scene.remove_world_object("box")
+
         
 def record_trajectory(start,end,traj):
     end = list(numpy.around(numpy.array(end),5))
     start = list(numpy.around(numpy.array(start),5))
     traj =  (numpy.around(numpy.array(traj),5)).tolist()
-    with open('/clever/roboArm_dataset/data.txt', 'a') as f:
+    with open('/clever/roboArm_dataset/data_2.txt', 'a') as f:
         f.write("start: "+str(start)+"\n")
         f.write("tajectories: "+str(traj)+"\n")
         f.write("end: "+str(end)+"\n")
@@ -149,10 +184,14 @@ if __name__ == "__main__":
     my_arm = MoveGroupCom()
     terminal = 0
     trajectoryNum = 3000 + 2
-    
+    # my_arm.add_obs0()
+    # my_arm.add_obs1()
+    # my_arm.add_obs2()
+    # time.sleep(10)
+    # my_arm.delete_obs()
+
     while(terminal < trajectoryNum):
         random_joint_value = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
-        # print("random joint goal:",random_joint_value)
         my_arm.reach_jointGoal(random_joint_value)
         time.sleep(4)
         if(my_arm.reachGoal):
@@ -164,12 +203,3 @@ if __name__ == "__main__":
             if(terminal > 1):
                 print("record %d data"%terminal)
                 record_trajectory(start,end,traj)
-
-    # start = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
-    # end = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
-    # traj = numpy.random.uniform(-pi+1, pi-1, size=(3,7))
-    # record_trajectory(start,end,traj)
-
-    # random_goal_value = numpy.random.uniform(-1, 1, size=(3, ))
-    # print("random_goal_value: ",random_goal_value)
-    # my_arm.reach_xyzGoal(random_goal_value)
