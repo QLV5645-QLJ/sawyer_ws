@@ -37,8 +37,10 @@ class MoveGroupCom(object):
 
         self.trajectory_subscriber = rospy.Subscriber("/move_group/display_planned_path",DisplayTrajectory,self.trajectory_callback)
         self.start = [0,0,0,0,0,0,0]
+        self.startPose = [0,0,0]
         self.traectories = None
         self.end = [0,0,0,0,0,0,0]
+        self.endPose = [0,0,0]
 
         # We can get the name of the reference frame for this robot:
         planning_frame = self.move_group.get_planning_frame()
@@ -91,6 +93,9 @@ class MoveGroupCom(object):
             self.end[i] = joint_goal[i]
     
     def reach_xyzGoal(self,random_goal_value):
+        self.reachGoal = False
+
+        self.set_StartState()
         pose_goal = geometry_msgs.msg.Pose()
         pose_goal.orientation.w = 1.0
         pose_goal.position.x = random_goal_value[0]#0.2
@@ -102,6 +107,8 @@ class MoveGroupCom(object):
         plan = self.move_group.go(wait=True)
         # Calling `stop()` ensures that there is no residual movement
         self.move_group.stop()
+        # Storing the end state
+        self.set_endState()
         # It is always good to clear your targets after planning with poses.
         # Note: there is no equivalent function for clear_joint_value_targets()
         self.move_group.clear_pose_targets()
@@ -140,17 +147,17 @@ class MoveGroupCom(object):
         box_pose.header.frame_id = "base"
         box_pose.pose.orientation.w = 1.0
         box_pose.pose.position.z = 0.2 # slightly above the end effector
-        box_pose.pose.position.x = 0.4 # slightly above the end effector
+        box_pose.pose.position.x = 0.3 # slightly above the end effector
         box_name = "box0"
-        self.scene.add_box(box_name, box_pose, size=(0.4, 0.4,0.1))
+        self.scene.add_box(box_name, box_pose, size=(0.5, 0.5,0.1))
         time.sleep(1)
 
     def add_obs1(self):
         box_pose = geometry_msgs.msg.PoseStamped()
         box_pose.header.frame_id = "base"
         box_pose.pose.orientation.w = 1.0
-        box_pose.pose.position.z = -0.2 # slightly above the end effector
-        box_pose.pose.position.x = 0.4 # slightly above the end effector
+        box_pose.pose.position.z = 0.0 # slightly above the end effector
+        box_pose.pose.position.x = 0.5 # slightly above the end effector
         box_name = "box1"
         self.scene.add_box(box_name, box_pose, size=(0.4, 0.4,0.1))
         time.sleep(1)
@@ -160,39 +167,80 @@ class MoveGroupCom(object):
         box_pose.header.frame_id = "base"
         box_pose.pose.orientation.w = 1.0
         box_pose.pose.position.z = 0.0 # slightly above the end effector
-        box_pose.pose.position.x = 0.4 # slightly above the end effector
+        box_pose.pose.position.x = 0.5 # slightly above the end effector
         box_name = "box2"
-        self.scene.add_box(box_name, box_pose, size=(0.2, 0.1,0.2))
+        self.scene.add_box(box_name, box_pose, size=(0.5, 0.1,0.2))
         time.sleep(1)
 
     def delete_obs(self):
-        self.scene.remove_world_object("box")
+        self.scene.remove_world_object("box2")
+    
+    def set_StartState(self):
+        joint_goal = self.move_group.get_current_joint_values()
+        wpose = self.move_group.get_current_pose().pose
+        self.startPose = [wpose.position.x,wpose.position.y,wpose.position.z]
+        self.setStart(joint_goal)
+
+    def set_endState(self):
+        joint_goal = self.move_group.get_current_joint_values()
+        wpose = self.move_group.get_current_pose().pose
+        self.endPose = [wpose.position.x,wpose.position.y,wpose.position.z]
+        self.setEnd(joint_goal)
+
+    def get_currentPose(self):
+        wpose = self.move_group.get_current_pose().pose
+        return [wpose.position.x,wpose.position.y,wpose.position.z]
 
         
 def record_trajectory(start,end,traj):
     end = list(numpy.around(numpy.array(end),5))
     start = list(numpy.around(numpy.array(start),5))
     traj =  (numpy.around(numpy.array(traj),5)).tolist()
-    with open('/clever/roboArm_dataset/data_2.txt', 'a') as f:
+    with open('/home/qinjielin/Documents/dataset/roboArm/data_2.txt', 'a') as f:
         f.write("start: "+str(start)+"\n")
         f.write("tajectories: "+str(traj)+"\n")
         f.write("end: "+str(end)+"\n")
     f.close()
 
+def record_poses(pose1,pose2):
+    pose1 = list(numpy.around(numpy.array(pose1),5))
+    pose2 = list(numpy.around(numpy.array(pose2),5))
+    with open('/home/qinjielin/Documents/dataset/roboArm/data_Pose.txt', 'a') as f:
+        f.write("start pose: "+str(pose1)+"\n")
+        f.write("end pose: "+str(pose1)+"\n")
+    f.close()
+
+def generate_pose(Posi):
+    target = [0,0,0]#x,y,z
+    if(Posi):
+        target[1] = random.uniform(0.4,0.8)
+    else:
+        target[1] = random.uniform(-0.4,-0.8)
+    target[0] = random.uniform(0.0,0.8)
+    target[2] = random.uniform(-0.5,0.5)
+    return target
 
 if __name__ == "__main__":
     my_arm = MoveGroupCom()
     terminal = 0
     trajectoryNum = 3000 + 2
-    # my_arm.add_obs0()
-    # my_arm.add_obs1()
-    # my_arm.add_obs2()
-    # time.sleep(10)
+    target = None
+
     # my_arm.delete_obs()
+    my_arm.add_obs1()
+    time.sleep(10)
 
     while(terminal < trajectoryNum):
-        random_joint_value = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
-        my_arm.reach_jointGoal(random_joint_value)
+        # random_joint_value = numpy.random.uniform(-pi+1, pi-1, size=(7, ))
+        # my_arm.reach_jointGoal(random_joint_value)
+
+        if(terminal%2 == 0):
+            target = generate_pose(True)
+        else:
+            target = generate_pose(False)
+        print("try target pose:",target)
+
+        my_arm.reach_xyzGoal(target)
         time.sleep(4)
         if(my_arm.reachGoal):
             terminal+=1
@@ -203,3 +251,5 @@ if __name__ == "__main__":
             if(terminal > 1):
                 print("record %d data"%terminal)
                 record_trajectory(start,end,traj)
+                record_poses(list(my_arm.startPose),list(my_arm.endPose))
+        
