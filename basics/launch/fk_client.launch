@@ -1,0 +1,5 @@
+<launch>
+  <remap from="joint_states" to="robot/joint_states"/>
+  <node pkg="basics" type="fk_client.py" name="fk_client.py"  output="screen">
+  </node>
+</launch>

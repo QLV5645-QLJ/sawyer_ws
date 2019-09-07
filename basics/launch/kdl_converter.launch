@@ -1,0 +1,5 @@
+<launch>
+  <remap from="/joint_states" to="/robot/joint_states"/>
+  <node pkg="pykdl_utils" type="joint_kinematics.py" name="joint_kinematics.py"  output="screen">
+  </node>
+</launch>
