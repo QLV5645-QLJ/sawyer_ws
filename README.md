@@ -6,7 +6,7 @@ roslaunch sawyer_moveit_config sawyer_moveit.launch
 ```   
 roslaunch basics testMoveIt.launch     
 ```   
-### tranform joint angles to pos  
+### tranform joint angles to pos(clone from pykdl but replace "joint_states" by "robot/joint_states")  
 ```    
 rosrun  pykdl_utils joint_kinematics.py            
 ```   
