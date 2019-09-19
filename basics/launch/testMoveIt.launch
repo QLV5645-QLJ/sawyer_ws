@@ -1,4 +1,6 @@
 <launch>
+  <arg name="stage" default="100"/>
+  <param name="stage_id"  value="$(arg stage)"/>
   <remap from="joint_states" to="robot/joint_states"/>
   <node pkg="basics" type="testMoveIt.py" name="testMoveIt.py"  output="screen">
   </node>

@@ -41,6 +41,8 @@ class MoveGroupCom(object):
         self.traectories = None
         self.end = [0,0,0,0,0,0,0]
         self.endPose = [0,0,0]
+        self.stage_id = rospy.get_param('/stage_id',0)
+
 
         # We can get the name of the reference frame for this robot:
         planning_frame = self.move_group.get_planning_frame()
@@ -114,13 +116,14 @@ class MoveGroupCom(object):
         self.move_group.clear_pose_targets()
 
     def goalStatus_callback(self,msg):
-        self.status = msg.status_list[0].status
-        self.goalId = msg.status_list[0].goal_id.stamp.secs
-        if (not (self.goalId == self.lastGoalId)):
-            if(self.status == 3):
-                self.lastGoalId = self.goalId
-                self.reachGoal=True
-                print("**************** reach new goal *****************")
+        if(len(msg.status_list)>0):
+            self.status = msg.status_list[0].status
+            self.goalId = msg.status_list[0].goal_id.stamp.secs
+            if (not (self.goalId == self.lastGoalId)):
+                if(self.status == 3):
+                    self.lastGoalId = self.goalId
+                    self.reachGoal=True
+                    print("**************** reach new goal *****************")
     
     def get_traj(self):
         traj = None
@@ -172,6 +175,37 @@ class MoveGroupCom(object):
         self.scene.add_box(box_name, box_pose, size=(0.5, 0.1,0.2))
         time.sleep(1)
 
+    def add_random_obs(self,i,posy_pos):
+        # size = {(0.5,0.1,0.2),(0.4, 0.4,0.1),(0.4,0.4,0.1)}
+        size = numpy.random.uniform(low=0.5, high=0.1, size=(3,))
+        posx = 0.2
+        posy = 0.2
+        if(posy_pos):
+            posx = numpy.random.uniform(low=0.3, high=0.6)
+            posy = numpy.random.uniform(low=-0.3, high=0.0)
+
+        else:
+            posx = numpy.random.uniform(low=0.3, high=0.6)
+            posy = numpy.random.uniform(low=0.0, high=0.3)
+
+        posz = numpy.random.uniform(low=-0.2, high=0.5)
+        size = numpy.round(size,1)
+        posx = numpy.round(posx,1)
+        posy = numpy.round(posy,1)
+        posz = numpy.round(posz,1)
+        pos = [posx,posy,posz]
+
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "base"
+        box_pose.pose.orientation.w = 1.0
+        box_pose.pose.position.z = posz # slightly above the end effector
+        box_pose.pose.position.x = posx # slightly above the end effector
+        box_pose.pose.position.y = posy # slightly above the end effector
+        box_name = "box%d"%i
+        self.scene.add_box(box_name, box_pose, size=(size[0], size[1],size[2]))
+        time.sleep(2)        
+        return size,pos
+
     def delete_obs(self):
         self.scene.remove_world_object("box2")
     
@@ -202,6 +236,18 @@ def record_trajectory(start,end,traj):
         f.write("end: "+str(end)+"\n")
     f.close()
 
+def record_trajectory_withobs(obs_aabb,start,end,traj,fileId):
+    end = list(numpy.around(numpy.array(end),5))
+    start = list(numpy.around(numpy.array(start),5))
+    traj =  (numpy.around(numpy.array(traj),5)).tolist()
+    obs_aabb = list(obs_aabb)
+    with open('/home/qinjielin/Documents/dataset/roboArm/data_%d.txt'%fileId, 'a') as f:
+        f.write("obtacles: "+str(obs_aabb)+"\n")
+        f.write("start: "+str(start)+"\n")
+        f.write("tajectories: "+str(traj)+"\n")
+        f.write("end: "+str(end)+"\n")
+    f.close()
+
 def record_poses(pose1,pose2):
     pose1 = list(numpy.around(numpy.array(pose1),5))
     pose2 = list(numpy.around(numpy.array(pose2),5))
@@ -220,14 +266,35 @@ def generate_pose(Posi):
     target[2] = random.uniform(-0.5,0.5)
     return target
 
+def get_aabb(obs_size,obs_pos):
+    obs_size_array = numpy.asarray(obs_size)
+    obs_pos_array = numpy.asarray(obs_pos)
+    aabb_min = numpy.round(obs_pos_array - (obs_size_array/2),1) 
+    aabb_max = numpy.round(obs_pos_array + (obs_size_array/2),1) 
+    res = [list(aabb_min),list(aabb_max)]
+    return res
+
+
 if __name__ == "__main__":
     my_arm = MoveGroupCom()
     terminal = 0
-    trajectoryNum = 3000 + 2
+    trajectoryNum = 3 + 2#3000+2
     target = None
+    fileId = my_arm.stage_id
 
-    # my_arm.delete_obs()
-    my_arm.add_obs1()
+    #generate obstacles
+    num_box = numpy.random.randint(3) + 2
+    obs_pos = False
+    obs_aabbs = []
+    if((num_box%2) == 0):
+        obs_pos = True
+
+    for i in range(num_box):
+        size,pos = my_arm.add_random_obs(i,obs_pos)
+        aabb = get_aabb(size,pos)
+        obs_aabbs.append(aabb)
+        print("box size:",size,"pos:",pos)
+    print("obs_aabbs:",obs_aabbs)
     time.sleep(10)
 
     while(terminal < trajectoryNum):
@@ -250,6 +317,7 @@ if __name__ == "__main__":
             # sychronize the trajectory
             if(terminal > 1):
                 print("record %d data"%terminal)
-                record_trajectory(start,end,traj)
-                record_poses(list(my_arm.startPose),list(my_arm.endPose))
+                record_trajectory_withobs(obs_aabbs,start,end,traj,fileId)
+                # record_trajectory(start,end,traj)
+                # record_poses(list(my_arm.startPose),list(my_arm.endPose))
         

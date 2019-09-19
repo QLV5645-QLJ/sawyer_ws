@@ -2,7 +2,7 @@
 ```   
 sudo apt-get install ros-melodic-ros-control ros-melodic-ros-controllers  ros-melodic-moveit-*    
 ```  
-###command to control robot arm
+###  command to control robot arm
 ```   
 roslaunch sawyer_gazebo sawyer_world.launch    
 rosrun intera_interface enable_robot.py -e    
