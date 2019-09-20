@@ -54,17 +54,17 @@ def generate_collection_cmd(rosport,gazeboport,fileId):
 
 if __name__ == "__main__":
     rosport_start = 11366#11333
-    gazebo_start = 11466
+    gazebo_start = 11866
     # worlds_path = ["../worlds/stage_adMap2.world","../worlds/stage_adMap3.world","../worlds/stage_adMap4.world"]
     # worlds_path = ["../worlds/stage_adMap5.world","../worlds/stage_adMap6.world","../worlds/stage_adMap7.world"]
     # worlds_path = ["../worlds/stage_adMap8.world","../worlds/stage_adMap9.world","../worlds/stage_adMap10.world"]
     # worlds_path = ["../worlds/stage_adMap14.world","../worlds/stage_adMap15.world","../worlds/stage_adMap16.world"]
     # worlds_path = ["../worlds/stage_adMap11.world","../worlds/stage_adMap12.world","../worlds/stage_adMap13.world"]
     # worlds_path = ["../worlds/stage3.world"]
-    worlds_num = 2 #parallel stage nums
+    worlds_num =  30#parallel stage nums
     gazeboport = gazebo_start
     rosport = rosport_start
-    for i in range(worlds_num):
+    for i in range(20,(20+worlds_num)):
         cmd_world = generate_world_cmd(rosport,gazeboport)
         cmd_enable = generate_enable_cmd(rosport,gazeboport)
         cmd_service = generate_service_cmd(rosport,gazeboport)

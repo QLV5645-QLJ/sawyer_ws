@@ -178,15 +178,16 @@ class MoveGroupCom(object):
     def add_random_obs(self,i,posy_pos):
         # size = {(0.5,0.1,0.2),(0.4, 0.4,0.1),(0.4,0.4,0.1)}
         size = numpy.random.uniform(low=0.5, high=0.1, size=(3,))
+        size[2] = numpy.random.uniform(low=0.3, high=0.1)
         posx = 0.2
         posy = 0.2
         if(posy_pos):
-            posx = numpy.random.uniform(low=0.3, high=0.6)
-            posy = numpy.random.uniform(low=-0.3, high=0.0)
+            posx = numpy.random.uniform(low=0.4, high=0.7)
+            posy = numpy.random.uniform(low=-0.3, high=0.1)
 
         else:
-            posx = numpy.random.uniform(low=0.3, high=0.6)
-            posy = numpy.random.uniform(low=0.0, high=0.3)
+            posx = numpy.random.uniform(low=0.4, high=0.7)
+            posy = numpy.random.uniform(low=0.1, high=0.3)
 
         posz = numpy.random.uniform(low=-0.2, high=0.5)
         size = numpy.round(size,1)
@@ -241,7 +242,7 @@ def record_trajectory_withobs(obs_aabb,start,end,traj,fileId):
     start = list(numpy.around(numpy.array(start),5))
     traj =  (numpy.around(numpy.array(traj),5)).tolist()
     obs_aabb = list(obs_aabb)
-    with open('/home/qinjielin/Documents/dataset/roboArm/data_%d.txt'%fileId, 'a') as f:
+    with open('/clever/dataset/roboArm/data_%d.txt'%fileId, 'a') as f:
         f.write("obtacles: "+str(obs_aabb)+"\n")
         f.write("start: "+str(start)+"\n")
         f.write("tajectories: "+str(traj)+"\n")
@@ -278,7 +279,7 @@ def get_aabb(obs_size,obs_pos):
 if __name__ == "__main__":
     my_arm = MoveGroupCom()
     terminal = 0
-    trajectoryNum = 3 + 2#3000+2
+    trajectoryNum = 150 + 2#3000+2
     target = None
     fileId = my_arm.stage_id
 
@@ -288,6 +289,9 @@ if __name__ == "__main__":
     obs_aabbs = []
     if((num_box%2) == 0):
         obs_pos = True
+
+    my_arm.reach_xyzGoal([0.0,0.5,0.4])
+    time.sleep(10)
 
     for i in range(num_box):
         size,pos = my_arm.add_random_obs(i,obs_pos)
